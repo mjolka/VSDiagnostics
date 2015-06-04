@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
@@ -78,36 +77,50 @@ namespace VSDiagnostics.Diagnostics.General.NamingConventions
             }
         }
 
-        public static ImmutableArray<SyntaxToken> GetIdentifiers(this SyntaxNode node)
+        public static IEnumerable<SyntaxToken> GetIdentifiers(this SyntaxNode node)
         {
             switch (node.Kind())
             {
                 case SyntaxKind.PropertyDeclaration:
-                    return ImmutableArray.Create(((PropertyDeclarationSyntax)node).Identifier);
+                    yield return ((PropertyDeclarationSyntax)node).Identifier;
+                    yield break;
 
                 case SyntaxKind.MethodDeclaration:
-                    return ImmutableArray.Create(((MethodDeclarationSyntax)node).Identifier);
+                    yield return ((MethodDeclarationSyntax)node).Identifier;
+                    yield break;
 
                 case SyntaxKind.ClassDeclaration:
-                    return ImmutableArray.Create(((ClassDeclarationSyntax)node).Identifier);
+                    yield return ((ClassDeclarationSyntax)node).Identifier;
+                    yield break;
 
                 case SyntaxKind.StructDeclaration:
-                    return ImmutableArray.Create(((StructDeclarationSyntax)node).Identifier);
+                    yield return ((StructDeclarationSyntax)node).Identifier;
+                    yield break;
 
                 case SyntaxKind.InterfaceDeclaration:
-                    return ImmutableArray.Create(((InterfaceDeclarationSyntax)node).Identifier);
+                    yield return ((InterfaceDeclarationSyntax)node).Identifier;
+                    yield break;
 
                 case SyntaxKind.Parameter:
-                    return ImmutableArray.Create(((ParameterSyntax)node).Identifier);
+                    yield return ((ParameterSyntax)node).Identifier;
+                    yield break;
 
                 case SyntaxKind.FieldDeclaration:
-                    return ((FieldDeclarationSyntax)node).Declaration.Variables.ToImmutableArray(variable => variable.Identifier);
+                    foreach (var variable in  ((FieldDeclarationSyntax)node).Declaration.Variables)
+                    {
+                        yield return variable.Identifier;
+                    }
+                    yield break;
 
                 case SyntaxKind.LocalDeclarationStatement:
-                    return ((LocalDeclarationStatementSyntax)node).Declaration.Variables.ToImmutableArray(variable => variable.Identifier);
+                    foreach (var variable in ((LocalDeclarationStatementSyntax)node).Declaration.Variables)
+                    {
+                        yield return variable.Identifier;
+                    }
+                    yield break;
 
                 default:
-                    return ImmutableArray<SyntaxToken>.Empty;
+                    yield break;
             }
         }
 
@@ -117,19 +130,6 @@ namespace VSDiagnostics.Diagnostics.General.NamingConventions
             {
                 yield return ancestor;
             }
-        }
-
-        private static ImmutableArray<TResult> ToImmutableArray<TSource, TResult>(
-            this SeparatedSyntaxList<TSource> nodes,
-            Func<TSource, TResult> selector) where TSource : SyntaxNode
-        {
-            var array = new TResult[nodes.Count];
-            for (var i = 0; i < nodes.Count; i++)
-            {
-                array[i] = selector(nodes[i]);
-            }
-
-            return array.ToImmutableArray();
         }
 
         public static SyntaxToken WithConvention(this SyntaxToken identifier, NamingConvention namingConvention)
