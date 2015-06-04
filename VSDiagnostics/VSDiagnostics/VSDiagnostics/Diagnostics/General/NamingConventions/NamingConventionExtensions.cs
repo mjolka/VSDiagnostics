@@ -1,14 +1,137 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using VSDiagnostics.Utilities;
 
 namespace VSDiagnostics.Diagnostics.General.NamingConventions
 {
     internal static class NamingConventionExtensions
     {
+        public static NamingConvention? GetNamingConvention(this SyntaxNode node)
+        {
+            switch (node.Kind())
+            {
+                case SyntaxKind.PropertyDeclaration:
+                case SyntaxKind.MethodDeclaration:
+                case SyntaxKind.ClassDeclaration:
+                case SyntaxKind.StructDeclaration:
+                    return NamingConvention.UpperCamelCase;
+
+                case SyntaxKind.LocalDeclarationStatement:
+                case SyntaxKind.Parameter:
+                    return NamingConvention.LowerCamelCase;
+
+                case SyntaxKind.InterfaceDeclaration:
+                    return NamingConvention.InterfacePrefixUpperCamelCase;
+
+                case SyntaxKind.FieldDeclaration:
+                    var modifiers = ((FieldDeclarationSyntax)node).Modifiers;
+                    if (modifiers.Any(SyntaxKind.InternalKeyword) ||
+                        modifiers.Any(SyntaxKind.ProtectedKeyword) ||
+                        modifiers.Any(SyntaxKind.PublicKeyword))
+                    {
+                        return NamingConvention.UpperCamelCase;
+                    }
+
+                    return NamingConvention.UnderscoreLowerCamelCase;
+
+                default:
+                    return null;
+            }
+        }
+
+        public static string GetMemberType(this SyntaxNode node)
+        {
+            switch (node.Kind())
+            {
+                case SyntaxKind.PropertyDeclaration:
+                    return "property";
+
+                case SyntaxKind.MethodDeclaration:
+                    return "method";
+
+                case SyntaxKind.ClassDeclaration:
+                    return "class";
+
+                case SyntaxKind.StructDeclaration:
+                    return "struct";
+
+                case SyntaxKind.LocalDeclarationStatement:
+                    return "local";
+
+                case SyntaxKind.Parameter:
+                    return "parameter";
+
+                case SyntaxKind.InterfaceDeclaration:
+                    return "interface";
+
+                case SyntaxKind.FieldDeclaration:
+                    return "field";
+
+                default:
+                    return string.Empty;
+            }
+        }
+
+        public static ImmutableArray<SyntaxToken> GetIdentifiers(this SyntaxNode node)
+        {
+            switch (node.Kind())
+            {
+                case SyntaxKind.PropertyDeclaration:
+                    return ImmutableArray.Create(((PropertyDeclarationSyntax)node).Identifier);
+
+                case SyntaxKind.MethodDeclaration:
+                    return ImmutableArray.Create(((MethodDeclarationSyntax)node).Identifier);
+
+                case SyntaxKind.ClassDeclaration:
+                    return ImmutableArray.Create(((ClassDeclarationSyntax)node).Identifier);
+
+                case SyntaxKind.StructDeclaration:
+                    return ImmutableArray.Create(((StructDeclarationSyntax)node).Identifier);
+
+                case SyntaxKind.InterfaceDeclaration:
+                    return ImmutableArray.Create(((InterfaceDeclarationSyntax)node).Identifier);
+
+                case SyntaxKind.Parameter:
+                    return ImmutableArray.Create(((ParameterSyntax)node).Identifier);
+
+                case SyntaxKind.FieldDeclaration:
+                    return ((FieldDeclarationSyntax)node).Declaration.Variables.ToImmutableArray(variable => variable.Identifier);
+
+                case SyntaxKind.LocalDeclarationStatement:
+                    return ((LocalDeclarationStatementSyntax)node).Declaration.Variables.ToImmutableArray(variable => variable.Identifier);
+
+                default:
+                    return ImmutableArray<SyntaxToken>.Empty;
+            }
+        }
+
+        public static IEnumerable<SyntaxNode> GetAncestors(this SyntaxToken token)
+        {
+            for (var ancestor = token.Parent; ancestor != null; ancestor = ancestor.Parent)
+            {
+                yield return ancestor;
+            }
+        }
+
+        private static ImmutableArray<TResult> ToImmutableArray<TSource, TResult>(
+            this SeparatedSyntaxList<TSource> nodes,
+            Func<TSource, TResult> selector) where TSource : SyntaxNode
+        {
+            var array = new TResult[nodes.Count];
+            for (var i = 0; i < nodes.Count; i++)
+            {
+                array[i] = selector(nodes[i]);
+            }
+
+            return array.ToImmutableArray();
+        }
+
         public static SyntaxToken WithConvention(this SyntaxToken identifier, NamingConvention namingConvention)
         {
             // int @class = 5;
