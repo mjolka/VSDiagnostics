@@ -124,14 +124,6 @@ namespace VSDiagnostics.Diagnostics.General.NamingConventions
             }
         }
 
-        public static IEnumerable<SyntaxNode> GetAncestors(this SyntaxToken token)
-        {
-            for (var ancestor = token.Parent; ancestor != null; ancestor = ancestor.Parent)
-            {
-                yield return ancestor;
-            }
-        }
-
         public static SyntaxToken WithConvention(this SyntaxToken identifier, NamingConvention namingConvention)
         {
             // int @class = 5;

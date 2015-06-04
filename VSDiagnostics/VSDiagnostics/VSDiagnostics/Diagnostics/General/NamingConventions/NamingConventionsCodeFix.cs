@@ -26,7 +26,7 @@ namespace VSDiagnostics.Diagnostics.General.NamingConventions
 
         private static Task<Solution> RenameAsync(Document document, SyntaxNode root, SyntaxToken identifier)
         {
-            var ancestor = identifier.GetAncestors().First(node => node.GetNamingConvention().HasValue);
+            var ancestor = identifier.Parent.AncestorsAndSelf().First(node => node.GetNamingConvention().HasValue);
             var namingConvention = ancestor.GetNamingConvention().Value;
             var newParent = ancestor.ReplaceToken(identifier, identifier.WithConvention(namingConvention));
             var newRoot = root.ReplaceNode(ancestor, newParent);
