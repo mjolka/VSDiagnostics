@@ -1,14 +1,129 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using VSDiagnostics.Utilities;
 
 namespace VSDiagnostics.Diagnostics.General.NamingConventions
 {
     internal static class NamingConventionExtensions
     {
+        public static NamingConvention? GetNamingConvention(this SyntaxNode node)
+        {
+            switch (node.Kind())
+            {
+                case SyntaxKind.PropertyDeclaration:
+                case SyntaxKind.MethodDeclaration:
+                case SyntaxKind.ClassDeclaration:
+                case SyntaxKind.StructDeclaration:
+                    return NamingConvention.UpperCamelCase;
+
+                case SyntaxKind.LocalDeclarationStatement:
+                case SyntaxKind.Parameter:
+                    return NamingConvention.LowerCamelCase;
+
+                case SyntaxKind.InterfaceDeclaration:
+                    return NamingConvention.InterfacePrefixUpperCamelCase;
+
+                case SyntaxKind.FieldDeclaration:
+                    var modifiers = ((FieldDeclarationSyntax)node).Modifiers;
+                    if (modifiers.Any(SyntaxKind.InternalKeyword) ||
+                        modifiers.Any(SyntaxKind.ProtectedKeyword) ||
+                        modifiers.Any(SyntaxKind.PublicKeyword))
+                    {
+                        return NamingConvention.UpperCamelCase;
+                    }
+
+                    return NamingConvention.UnderscoreLowerCamelCase;
+
+                default:
+                    return null;
+            }
+        }
+
+        public static string GetMemberType(this SyntaxNode node)
+        {
+            switch (node.Kind())
+            {
+                case SyntaxKind.PropertyDeclaration:
+                    return "property";
+
+                case SyntaxKind.MethodDeclaration:
+                    return "method";
+
+                case SyntaxKind.ClassDeclaration:
+                    return "class";
+
+                case SyntaxKind.StructDeclaration:
+                    return "struct";
+
+                case SyntaxKind.LocalDeclarationStatement:
+                    return "local";
+
+                case SyntaxKind.Parameter:
+                    return "parameter";
+
+                case SyntaxKind.InterfaceDeclaration:
+                    return "interface";
+
+                case SyntaxKind.FieldDeclaration:
+                    return "field";
+
+                default:
+                    return string.Empty;
+            }
+        }
+
+        public static IEnumerable<SyntaxToken> GetIdentifiers(this SyntaxNode node)
+        {
+            switch (node.Kind())
+            {
+                case SyntaxKind.PropertyDeclaration:
+                    yield return ((PropertyDeclarationSyntax)node).Identifier;
+                    yield break;
+
+                case SyntaxKind.MethodDeclaration:
+                    yield return ((MethodDeclarationSyntax)node).Identifier;
+                    yield break;
+
+                case SyntaxKind.ClassDeclaration:
+                    yield return ((ClassDeclarationSyntax)node).Identifier;
+                    yield break;
+
+                case SyntaxKind.StructDeclaration:
+                    yield return ((StructDeclarationSyntax)node).Identifier;
+                    yield break;
+
+                case SyntaxKind.InterfaceDeclaration:
+                    yield return ((InterfaceDeclarationSyntax)node).Identifier;
+                    yield break;
+
+                case SyntaxKind.Parameter:
+                    yield return ((ParameterSyntax)node).Identifier;
+                    yield break;
+
+                case SyntaxKind.FieldDeclaration:
+                    foreach (var variable in  ((FieldDeclarationSyntax)node).Declaration.Variables)
+                    {
+                        yield return variable.Identifier;
+                    }
+                    yield break;
+
+                case SyntaxKind.LocalDeclarationStatement:
+                    foreach (var variable in ((LocalDeclarationStatementSyntax)node).Declaration.Variables)
+                    {
+                        yield return variable.Identifier;
+                    }
+                    yield break;
+
+                default:
+                    yield break;
+            }
+        }
+
         public static SyntaxToken WithConvention(this SyntaxToken identifier, NamingConvention namingConvention)
         {
             // int @class = 5;
